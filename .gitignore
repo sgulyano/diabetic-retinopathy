@@ -1,0 +1,7 @@
+test/*
+train/*
+sample/*
+code/preproc
+code/__pycache__
+*.zip.*
+*.zip
