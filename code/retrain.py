@@ -177,7 +177,7 @@ if __name__ == '__main__':
     
     ## visualize the CNN
     model_best = torch.load(os.path.join(output_dir, "best_dr"))
-    results = calc_cam(output_dir, retina_df['path'][0], model_best, 'inception_v3', 3, True)
+    results, _ = calc_cam(output_dir, retina_df['path'][0], model_best, val_transforms, 'inception_v3', 3, True)
     
     fig = plt.figure(4, figsize=(20, 12))
     for i in range(len(results)):

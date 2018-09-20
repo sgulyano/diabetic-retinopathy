@@ -7,9 +7,9 @@
 
 from __future__ import print_function
 
-import copy
 import os
 import cv2
+from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
@@ -29,11 +29,11 @@ def save_gradcam(filename, gcam, raw_image):
     h, w, _ = raw_image.shape
     gcam = cv2.resize(gcam, (w, h))
     gcam = cv2.applyColorMap(np.uint8(gcam * 255.0), cv2.COLORMAP_JET)
-    gcam = gcam.astype(np.float) + raw_image.astype(np.float)
+    gcam = gcam.astype(np.float) + 255.0 * raw_image.astype(np.float)
     gcam = gcam / gcam.max() * 255.0
     cv2.imwrite(filename, np.uint8(gcam))
 
-def calc_cam(output_path, image_path, model, arch, topk, cuda):
+def calc_cam(output_path, image_path, model, transform, arch, topk, cuda):
     results = []
     CONFIG = {
         'resnet152': {
@@ -72,16 +72,14 @@ def calc_cam(output_path, image_path, model, arch, topk, cuda):
     model.eval()
 
     # Image
-    raw_image = cv2.imread(image_path)[..., ::-1]
-    raw_image = cv2.resize(raw_image, (CONFIG['input_size'], ) * 2)
-    image = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-        )
-    ])(raw_image).unsqueeze(0)
-
+    pil_image = Image.open(image_path)
+    #raw_image = cv2.imread(image_path)[..., ::-1]
+    #raw_image = cv2.resize(raw_image, (CONFIG['input_size'], ) * 2)
+    raw_image = transform(pil_image)
+    image = raw_image.unsqueeze(0)
+    
+    raw_image = raw_image.numpy().transpose(1,2,0)
+    
     # =========================================================================
     print('Grad-CAM')
     # =========================================================================
@@ -151,13 +149,28 @@ def calc_cam(output_path, image_path, model, arch, topk, cuda):
         save_gradient(os.path.join(output_path, result_name), output)
         results.append(os.path.join(output_path, result_name))
         print('[{:.5f}] {}'.format(probs[i], idx[i].cpu().numpy()))
-    return results
+    return (results, probs)
 
 
 if __name__ == '__main__':
     from torchvision import models
-    results = calc_cam('samples/cat_dog.png', models.inception_v3(pretrained=True), 'inception_v3', 3, True)
+    import pandas as pd
+    scale = 299
+    val_transforms = transforms.Compose([
+            transforms.Resize(scale),
+            transforms.CenterCrop(scale),
+            transforms.ToTensor()])
+    base_image_dir = os.path.join('..')
+    output_dir = os.path.join(base_image_dir, 'output')
+    train_image_dir = os.path.join(base_image_dir, 'train')
     
+    retina_df = pd.read_csv(os.path.join(base_image_dir, 'trainLabels.csv'))
+    retina_df['path'] = retina_df['image'].map(lambda x: os.path.join(train_image_dir,
+                                                             '{}.jpeg'.format(x)))
+    
+    model_best = torch.load(os.path.join(output_dir, "best_dr"))
+    results, y = calc_cam(output_dir, retina_df['path'][0], model_best, val_transforms, 'inception_v3', 3, True)
+    print(y)
     import matplotlib.pyplot as plt
     from PIL import Image
     fig = plt.figure(3, figsize=(20, 12))
