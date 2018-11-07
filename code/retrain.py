@@ -18,9 +18,9 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms, models
 
-from dr_dataset import DRDataset
-from dr_model import train_model, eval_model
-from dr_cam import calc_cam
+from diabeticretinopathy.code.dr_dataset import DRDataset
+from diabeticretinopathy.code.dr_model import train_model, eval_model
+from diabeticretinopathy.code.dr_cam import calc_cam
 
 np.random.seed(0)
 

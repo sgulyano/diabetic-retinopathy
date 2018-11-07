@@ -14,7 +14,7 @@ from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
-from grad_cam import (BackPropagation, Deconvolution, GradCAM, GuidedBackPropagation)
+from diabeticretinopathy.code.grad_cam import (BackPropagation, Deconvolution, GradCAM, GuidedBackPropagation)
 
 import matplotlib.pyplot as plt
 # if model has LSTM
@@ -189,7 +189,7 @@ def calc_cam(image_path, model, transform, arch, topk, cam_type='gradcam', cuda=
 
 def find_pred_one(image_folder, image_name):
     start_time = time.time()
-    from retrain import get_transformations
+    from diabeticretinopathy.code.retrain import get_transformations
     _, val_transforms = get_transformations()
     print(image_folder, image_name)
     image_path = os.path.join(image_folder, image_name)
@@ -199,11 +199,17 @@ def find_pred_one(image_folder, image_name):
     base_dir = os.path.dirname(os.path.realpath(__file__))
     dr_model = DRSeverePred.getInstance(os.path.join(base_dir,"best_dr"))
     results, probs, idx = dr_model.calc_cam(image_path, val_transforms, 'inception_v3', 5, 'gradcam')
+
+    
+
     for i in range(len(results)):
         #import pdb; pdb.set_trace()
         heatmap_name = 'analysis/' + save_name + '_' + str(idx[i]) + '.jpeg'
-        if not os.path.isfile(os.path.join(image_folder, heatmap_name)):
-            cv2.imwrite(os.path.join(image_folder, heatmap_name), results[i])
+        heatmap_path = os.path.join(image_folder, heatmap_name)
+        if not os.path.exists(os.path.dirname(heatmap_path)):
+            os.makedirs(os.path.dirname(heatmap_path))
+        if not os.path.isfile(heatmap_path):
+            cv2.imwrite(heatmap_path, results[i])
     
     del results, idx, dr_model
     torch.cuda.empty_cache()

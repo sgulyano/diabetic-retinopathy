@@ -13,7 +13,7 @@ from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
-from grad_cam import (BackPropagation, Deconvolution, GradCAM, GuidedBackPropagation)
+from diabeticretinopathy.code.grad_cam import (BackPropagation, Deconvolution, GradCAM, GuidedBackPropagation)
 
 # if model has LSTM
 # torch.backends.cudnn.enabled = False
